@@ -77,6 +77,42 @@ class User extends Authenticatable implements MustVerifyEmail
         }
     }
 
+    public function whatsappNumber(): ?string
+    {
+        $number = preg_replace('/\D+/', '', (string) $this->phone);
+
+        if ($number === '') {
+            return null;
+        }
+
+        if (str_starts_with($number, '620')) {
+            return '62'.substr($number, 3);
+        }
+
+        if (str_starts_with($number, '0')) {
+            return '62'.substr($number, 1);
+        }
+
+        if (str_starts_with($number, '8')) {
+            return '62'.$number;
+        }
+
+        return $number;
+    }
+
+    public function whatsappUrl(?string $message = null): ?string
+    {
+        $number = $this->whatsappNumber();
+
+        if (! $number) {
+            return null;
+        }
+
+        $query = filled($message) ? '?text='.rawurlencode($message) : '';
+
+        return "https://wa.me/{$number}{$query}";
+    }
+
     public function carts()
     {
         return $this->hasMany(Cart::class, 'user_id', 'id');

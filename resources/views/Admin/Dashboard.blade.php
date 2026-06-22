@@ -281,7 +281,7 @@
                                 <th class="p-4 pr-6">Kategori</th>
                                 <th class="p-4 pr-6">Harga</th>
                                 <th class="p-4 pr-6 text-center">Status Ketersediaan</th>
-                                <th class="p-4 pr-6 text-right">Aksi</th>
+                                <th class="p-4 pr-6 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[#F8F4EB]">
@@ -367,11 +367,19 @@
                                 <th class="p-4 pr-6">Penerima & Kurir</th>
                                 <th class="p-4 pr-6">Metode & Total Bayar</th>
                                 <th class="p-4 pr-6">Status Pesanan</th>
-                                <th class="p-4 pr-6 text-right">Aksi</th>
+                                <th class="p-4 pr-6 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[#F8F4EB]">
                             @forelse($orders ?? [] as $order)
+                                @php
+                                    $customer = $order->user;
+                                    $customerName = $customer?->name ?? 'Customer';
+                                    $orderStatus = str_replace('_', ' ', $order->status);
+                                    $whatsappUrl = $customer?->whatsappUrl(
+                                        "Halo {$customerName}, kami dari Steven Shoes ingin menginformasikan pesanan #{$order->invoice_number} dengan status {$orderStatus}."
+                                    );
+                                @endphp
                                 <tr class="hover:bg-brand-bg/10 transition-colors">
                                     <!-- Invoice Number (UUID string id as key) -->
                                     <td class="p-4 pl-6">
@@ -385,7 +393,10 @@
                                     </td>
                                     <!-- Penerima & Kurir -->
                                     <td class="p-4">
-                                        <div class="font-bold text-brand-dark">{{ $order->user->name ?? 'Pembeli' }}</div>
+                                        <div class="font-bold text-brand-dark">{{ $customerName }}</div>
+                                        @if($customer?->phone)
+                                            <div class="text-[10px] text-brand-secondary mt-0.5">WA: <span class="font-semibold">{{ $customer->phone }}</span></div>
+                                        @endif
                                         <div class="text-[10px] text-brand-secondary mt-0.5">Kurir: <span class="font-semibold uppercase">{{ $order->shipping_courier ?? 'JNE' }}</span></div>
                                     </td>
                                     <!-- Metode & Total -->
@@ -404,24 +415,44 @@
                                         </span>
                                     </td>
                                     <!-- Aksi Pembaruan Status -->
-                                    <td class="p-4 pr-6 text-right">
-                                        <form action="/admin/orders/{{ $order->id }}/status" method="POST" class="inline-flex gap-2">
-                                            @csrf
-                                            @method('PATCH')
-                                            
-                                            <!-- Pilihan Perubahan Status -->
-                                            <select name="status" class="bg-brand-bg border border-[#EADBCE] text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-dark cursor-pointer text-brand-dark">
-                                                <option value="menunggu_pembayaran" {{ $order->status == 'menunggu_pembayaran' ? 'selected' : '' }}>Menunggu Bayar</option>
-                                                <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Diproses</option>
-                                                <option value="dikirim" {{ $order->status == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
-                                                <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                                <option value="batal" {{ $order->status == 'batal' ? 'selected' : '' }}>Batal</option>
-                                            </select>
+                                    <td class="p-4 pr-6 text-center">
+                                        <div class="inline-flex flex-col xl:flex-row items-center justify-center gap-2">
+                                            @if($whatsappUrl)
+                                                <a href="{{ $whatsappUrl }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    title="Hubungi {{ $customerName }} via WhatsApp"
+                                                    class="inline-flex items-center justify-center gap-1.5 bg-green-500/10 text-green-700 hover:bg-green-500/15 border border-green-600/10 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106a1.125 1.125 0 0 0-1.173.417l-.97 1.293a1.125 1.125 0 0 1-1.21.38 12.035 12.035 0 0 1-7.143-7.143 1.125 1.125 0 0 1 .38-1.21l1.293-.97a1.125 1.125 0 0 0 .417-1.173L6.963 3.102A1.125 1.125 0 0 0 5.872 2.25H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                                                    </svg>
+                                                    Hubungi WA
+                                                </a>
+                                            @else
+                                                <span title="Customer belum mengisi nomor handphone"
+                                                    class="inline-flex items-center justify-center gap-1.5 bg-brand-bg text-brand-secondary/60 border border-[#EADBCE] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg whitespace-nowrap cursor-not-allowed">
+                                                    WA kosong
+                                                </span>
+                                            @endif
 
-                                            <button type="submit" class="bg-brand-dark text-white hover:bg-[#2A190C] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors">
-                                                Update
-                                            </button>
-                                        </form>
+                                            <form action="/admin/orders/{{ $order->id }}/status" method="POST" class="inline-flex gap-2">
+                                                @csrf
+                                                @method('PATCH')
+                                                
+                                                <!-- Pilihan Perubahan Status -->
+                                                <select name="status" class="bg-brand-bg border border-[#EADBCE] text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-dark cursor-pointer text-brand-dark">
+                                                    <option value="menunggu_pembayaran" {{ $order->status == 'menunggu_pembayaran' ? 'selected' : '' }}>Menunggu Bayar</option>
+                                                    <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Diproses</option>
+                                                    <option value="dikirim" {{ $order->status == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
+                                                    <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                                                    <option value="batal" {{ $order->status == 'batal' ? 'selected' : '' }}>Batal</option>
+                                                </select>
+
+                                                <button type="submit" class="bg-brand-dark text-white hover:bg-[#2A190C] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors">
+                                                    Update
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

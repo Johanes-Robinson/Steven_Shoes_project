@@ -106,7 +106,17 @@
             </div>
 
             <!-- Keluar Akun -->
-            <div class="pt-6 border-t border-[#E4D5BE] mt-8 md:mt-0">
+            <div class="pt-6 border-t border-[#E4D5BE] mt-8 md:mt-0 space-y-2">
+                <a href="https://wa.me/6282110000843?text=Halo%20Steven%20Shoes%2C%20saya%20ingin%20bertanya%20tentang%20pesanan%20saya."
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-green-700 hover:bg-green-50 transition-colors">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 4v-4z" />
+                    </svg>
+                    Hubungi Kami
+                </a>
+
                 <form action="/logout" method="POST" id="logout-form">
                     @csrf
                     <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-700 hover:bg-red-50 transition-colors">
@@ -245,12 +255,27 @@
                                     <span class="text-brand-secondary/40">|</span>
                                     <span class="text-xs font-mono font-medium text-brand-secondary">#{{ $order->invoice_number }}</span>
                                 </div>
-                                <span class="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider 
-                                    @if($order->status == 'selesai') bg-green-500/10 text-green-700 
-                                    @elseif($order->status == 'diproses') bg-blue-500/10 text-blue-700 
-                                    @else bg-amber-500/10 text-amber-700 @endif">
-                                    {{ $order->status }}
-                                </span>
+                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                    <span class="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider
+                                        @if($order->status == 'selesai') bg-green-500/10 text-green-700
+                                        @elseif($order->status == 'diproses') bg-blue-500/10 text-blue-700
+                                        @else bg-amber-500/10 text-amber-700 @endif">
+                                        {{ $order->status }}
+                                    </span>
+
+                                    @if($order->status == 'menunggu_pembayaran')
+                                        <form action="{{ route('orders.pay', $order) }}" method="POST" class="inline-flex">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm shadow-brand-dark/15 transition-all hover:bg-brand-dark/95 focus:outline-none focus:ring-2 focus:ring-brand-dark/20">
+                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                </svg>
+                                                Bayar
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="space-y-3">

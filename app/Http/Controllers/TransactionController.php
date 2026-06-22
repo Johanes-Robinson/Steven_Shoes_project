@@ -121,14 +121,39 @@ class TransactionController extends Controller
 
     public function success(Request $request, Transaction $transaction)
     {
-        abort_unless(
-            $request->user()->isAdmin() || $transaction->user_id === $request->user()->id,
-            403
-        );
+        $this->authorizeTransactionAccess($request, $transaction);
 
         $transaction->load(['details.product']);
 
         return view('customer.Success', compact('transaction'));
+    }
+
+    public function pay(Request $request, Transaction $transaction)
+    {
+        $this->authorizeTransactionAccess($request, $transaction);
+
+        if ($transaction->status !== 'menunggu_pembayaran') {
+            return redirect()
+                ->route('customer.dashboard')
+                ->with('warning', 'Pembayaran pesanan ini sudah diproses.');
+        }
+
+        $transaction->update([
+            'status' => 'diproses',
+        ]);
+
+        return redirect()->route('orders.payment-success', $transaction);
+    }
+
+    public function paymentSuccess(Request $request, Transaction $transaction)
+    {
+        $this->authorizeTransactionAccess($request, $transaction);
+
+        if ($transaction->status === 'menunggu_pembayaran') {
+            return redirect()->route('checkout.success', $transaction);
+        }
+
+        return view('customer.payment-success', compact('transaction'));
     }
 
     public function updateStatus(Request $request, Transaction $transaction)
@@ -185,5 +210,13 @@ class TransactionController extends Controller
             'product_id' => $product->id,
             'quantity' => $quantity,
         ];
+    }
+
+    private function authorizeTransactionAccess(Request $request, Transaction $transaction): void
+    {
+        abort_unless(
+            $request->user()->isAdmin() || $transaction->user_id === $request->user()->id,
+            403
+        );
     }
 }

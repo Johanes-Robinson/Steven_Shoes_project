@@ -42,7 +42,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', [userController::class, 'redirectDashboard'])->name('dashboard');
     Route::get('/customer/dashboard', [HomeController::class, 'dashboard'])->name('customer.dashboard');
-    Route::post('/profile/update', [userController::class, 'updateProfile'])->name('profile.update');
+    Route::match(['post', 'put'], '/profile/update', [userController::class, 'updateProfile'])->name('profile.update');
 
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
@@ -53,6 +53,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout', [TransactionController::class, 'prepareCheckout'])->name('checkout.prepare');
     Route::post('/checkout/process', [TransactionController::class, 'process'])->name('checkout.process');
     Route::get('/checkout/success/{transaction}', [TransactionController::class, 'success'])->name('checkout.success');
+    Route::post('/orders/{transaction}/pay', [TransactionController::class, 'pay'])->name('orders.pay');
+    Route::get('/orders/{transaction}/payment-success', [TransactionController::class, 'paymentSuccess'])->name('orders.payment-success');
 
     Route::get('/admin/dashboard', [productController::class, 'dashboard'])->name('admin.dashboard');
     Route::post('/admin/products', [productController::class, 'store'])->name('admin.products.store');

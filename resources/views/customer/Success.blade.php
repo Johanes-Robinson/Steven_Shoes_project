@@ -135,10 +135,18 @@
 
             <!-- Tombol Navigasi Bawah -->
             <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-[#FAF6EE]">
+                @if($transaction->status == 'menunggu_pembayaran')
+                    <form action="{{ route('orders.pay', $transaction) }}" method="POST" class="flex-1">
+                        @csrf
+                        <button type="submit" class="w-full bg-brand-dark hover:bg-brand-dark/95 text-white text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
+                            Bayar Sekarang
+                        </button>
+                    </form>
+                @endif
                 <a href="/customer/dashboard" class="flex-1 border border-brand-dark hover:bg-brand-dark/5 text-brand-dark text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
                     Cek Riwayat Pesanan
                 </a>
-                <a href="/customer/dashboard" class="flex-1 bg-brand-dark hover:bg-brand-dark/95 text-white text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
+                <a href="/customer/dashboard" class="flex-1 @if($transaction->status == 'menunggu_pembayaran') border border-[#EADBCE] hover:bg-[#F3ECDF] text-brand-dark @else bg-brand-dark hover:bg-brand-dark/95 text-white @endif text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
                     Kembali Ke Katalog
                 </a>
             </div>
