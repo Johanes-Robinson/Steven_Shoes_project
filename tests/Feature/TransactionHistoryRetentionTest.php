@@ -25,8 +25,7 @@ test('completed transaction history stays when customer and product are deleted'
         'is_available' => true,
     ]);
 
-    $transaction = Transaction::create([
-        'user_id' => $customer->id,
+    $transaction = new Transaction([
         'status' => 'selesai',
         'total_amount' => 350000,
         'payment_method' => 'bca',
@@ -36,10 +35,10 @@ test('completed transaction history stays when customer and product are deleted'
         'customer_email' => $customer->email,
         'customer_phone' => $customer->phone,
     ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
 
-    $detail = TransactionDetail::create([
-        'transaction_id' => $transaction->id,
-        'product_id' => $product->id,
+    $detail = new TransactionDetail([
         'quantity' => 1,
         'price' => $product->price,
         'product_name' => $product->name,
@@ -47,6 +46,9 @@ test('completed transaction history stays when customer and product are deleted'
         'product_size' => $product->size,
         'product_image_url' => $product->image_url,
     ]);
+    $detail->transaction()->associate($transaction);
+    $detail->product()->associate($product);
+    $detail->save();
 
     $product->delete();
     $customer->delete();

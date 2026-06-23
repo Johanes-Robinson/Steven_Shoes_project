@@ -16,7 +16,6 @@ class Product extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id',
         'name',
         'category',
         'size',

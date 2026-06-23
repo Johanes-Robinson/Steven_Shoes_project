@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -30,9 +31,13 @@ class verified_emailController extends Controller
             event(new Verified($user));
         }
 
+        Auth::login($user);
+        $request->session()->regenerate();
+        $user->syncRoleWithEmail();
+
         return redirect()
-            ->route('login')
-            ->with('status', 'Email berhasil diverifikasi. Silakan masuk untuk melanjutkan.');
+            ->route($user->isAdmin() ? 'admin.dashboard' : 'customer.dashboard')
+            ->with('status', 'Email berhasil diverifikasi.');
     }
 
     public function resendVerification(Request $request)

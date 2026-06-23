@@ -9,14 +9,15 @@ uses(RefreshDatabase::class);
 test('customer can complete a pending payment simulation', function () {
     $customer = User::factory()->create();
 
-    $transaction = Transaction::create([
-        'user_id' => $customer->id,
+    $transaction = new Transaction([
         'status' => 'menunggu_pembayaran',
         'total_amount' => 40000,
         'payment_method' => 'bca',
         'shipping_address' => 'Jl. Mangga Dua No. 10',
         'shipping_courier' => 'JNE',
     ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
 
     $response = $this
         ->actingAs($customer)
@@ -42,14 +43,15 @@ test('customer cannot pay another customer transaction', function () {
     $owner = User::factory()->create();
     $otherCustomer = User::factory()->create();
 
-    $transaction = Transaction::create([
-        'user_id' => $owner->id,
+    $transaction = new Transaction([
         'status' => 'menunggu_pembayaran',
         'total_amount' => 40000,
         'payment_method' => 'bca',
         'shipping_address' => 'Jl. Mangga Dua No. 10',
         'shipping_courier' => 'JNE',
     ]);
+    $transaction->user()->associate($owner);
+    $transaction->save();
 
     $this
         ->actingAs($otherCustomer)
@@ -65,14 +67,15 @@ test('customer cannot pay another customer transaction', function () {
 test('pending transaction cannot open payment success page directly', function () {
     $customer = User::factory()->create();
 
-    $transaction = Transaction::create([
-        'user_id' => $customer->id,
+    $transaction = new Transaction([
         'status' => 'menunggu_pembayaran',
         'total_amount' => 40000,
         'payment_method' => 'bca',
         'shipping_address' => 'Jl. Mangga Dua No. 10',
         'shipping_courier' => 'JNE',
     ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
 
     $this
         ->actingAs($customer)

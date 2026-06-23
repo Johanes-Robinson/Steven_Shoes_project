@@ -8,7 +8,7 @@ uses(RefreshDatabase::class);
 
 test('admin can update product size availability', function () {
     $admin = User::factory()->create([
-        'email' => User::ADMIN_EMAILS[0],
+        'email' => User::adminEmails()[0],
     ]);
 
     $product = Product::create([

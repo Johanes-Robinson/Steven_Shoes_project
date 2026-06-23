@@ -8,6 +8,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\userController;
 use App\Http\Controllers\verified_emailController;
+use App\Http\Middleware\NormalizeHtmlEncodedQueryString;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -17,7 +18,7 @@ Route::get('/location', [HomeController::class, 'location'])->name('location');
 
 Route::get('/email/verify', [verified_emailController::class, 'show'])->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', [verified_emailController::class, 'verify'])
-    ->middleware(['signed', 'throttle:6,1'])
+    ->middleware([NormalizeHtmlEncodedQueryString::class, 'signed', 'throttle:6,1'])
     ->name('verification.verify');
 Route::post('/email/verification-notification', [verified_emailController::class, 'resendVerification'])
     ->middleware('throttle:6,1')

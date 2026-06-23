@@ -53,12 +53,13 @@ class CartController extends Controller
         if ($cart) {
             $cart->increment('quantity', $quantity);
         } else {
-            $cart = Cart::create([
-                'user_id' => $request->user()->id,
-                'product_id' => $product->id,
+            $cart = new Cart([
                 'selected_size' => $selectedSize,
                 'quantity' => $quantity,
             ]);
+            $cart->user()->associate($request->user());
+            $cart->product()->associate($product);
+            $cart->save();
         }
 
         $cart->load('product.sizes');

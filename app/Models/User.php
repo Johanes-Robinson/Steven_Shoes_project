@@ -12,17 +12,11 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
-    public const ADMIN_EMAILS = [
-        'pardameansteven@gmail.com',
-        'alicia.christiani.16@gmail.com',
-    ];
-
     public $incrementing = false;
 
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id',
         'name',
         'email',
         'password',
@@ -66,10 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public static function adminEmails(): array
     {
-        return array_map(
-            fn (string $email) => strtolower(trim($email)),
-            self::ADMIN_EMAILS
-        );
+        return config('admin.emails', []);
     }
 
     public function isAdmin(): bool

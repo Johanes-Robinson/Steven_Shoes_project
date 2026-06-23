@@ -8,19 +8,20 @@ uses(RefreshDatabase::class);
 
 test('admin can update an order status', function () {
     $admin = User::factory()->create([
-        'email' => User::ADMIN_EMAILS[0],
+        'email' => User::adminEmails()[0],
     ]);
 
     $customer = User::factory()->create();
 
-    $transaction = Transaction::create([
-        'user_id' => $customer->id,
+    $transaction = new Transaction([
         'status' => 'menunggu_pembayaran',
         'total_amount' => 250000,
         'payment_method' => 'bca',
         'shipping_address' => 'Jl. Mangga Dua No. 10',
         'shipping_courier' => 'JNE',
     ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
 
     $response = $this
         ->actingAs($admin)
@@ -41,7 +42,7 @@ test('admin can update an order status', function () {
 
 test('admin can open whatsapp chat from an order row', function () {
     $admin = User::factory()->create([
-        'email' => User::ADMIN_EMAILS[1],
+        'email' => User::adminEmails()[1],
     ]);
 
     $customer = User::factory()->create([
@@ -49,14 +50,15 @@ test('admin can open whatsapp chat from an order row', function () {
         'phone' => '0812-3456-7890',
     ]);
 
-    Transaction::create([
-        'user_id' => $customer->id,
+    $transaction = new Transaction([
         'status' => 'diproses',
         'total_amount' => 250000,
         'payment_method' => 'bca',
         'shipping_address' => 'Jl. Mangga Dua No. 10',
         'shipping_courier' => 'JNE',
     ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
 
     $this
         ->actingAs($admin)

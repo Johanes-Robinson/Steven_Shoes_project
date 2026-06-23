@@ -10,7 +10,6 @@ class ProductSize extends Model
     use HasFactory;
 
     protected $fillable = [
-        'product_id',
         'size',
         'is_available',
     ];

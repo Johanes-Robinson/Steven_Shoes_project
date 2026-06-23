@@ -69,12 +69,14 @@ class TransactionController extends Controller
                 ->delete();
 
             foreach ($resolvedItems as $item) {
-                Cart::create([
-                    'user_id' => $request->user()->id,
-                    'product_id' => $item['product_id'],
+                $product = Product::findOrFail($item['product_id']);
+                $cart = new Cart([
                     'selected_size' => $item['selected_size'],
                     'quantity' => $item['quantity'],
                 ]);
+                $cart->user()->associate($request->user());
+                $cart->product()->associate($product);
+                $cart->save();
             }
         });
 
@@ -102,9 +104,7 @@ class TransactionController extends Controller
         }
 
         $transaction = DB::transaction(function () use ($user, $cartItems, $data) {
-            $transaction = Transaction::create([
-                'user_id' => $user->id,
-                'cart_id' => $cartItems->first()->id,
+            $transaction = new Transaction([
                 'status' => 'menunggu_pembayaran',
                 'total_amount' => $this->subtotal($cartItems),
                 'payment_method' => $data['payment_method'],
@@ -114,11 +114,12 @@ class TransactionController extends Controller
                 'customer_email' => $user->email,
                 'customer_phone' => $user->phone,
             ]);
+            $transaction->user()->associate($user);
+            $transaction->cart()->associate($cartItems->first());
+            $transaction->save();
 
             foreach ($cartItems as $item) {
-                TransactionDetail::create([
-                    'transaction_id' => $transaction->id,
-                    'product_id' => $item->product_id,
+                $detail = new TransactionDetail([
                     'quantity' => $item->quantity,
                     'price' => $item->product->price,
                     'product_name' => $item->product->name,
@@ -126,9 +127,13 @@ class TransactionController extends Controller
                     'product_size' => $item->selected_size ?? $item->product->size,
                     'product_image_url' => $item->product->image_url,
                 ]);
+                $detail->transaction()->associate($transaction);
+                $detail->product()->associate($item->product);
+                $detail->save();
             }
 
-            $transaction->update(['cart_id' => null]);
+            $transaction->cart()->dissociate();
+            $transaction->save();
 
             Cart::query()
                 ->whereIn('id', $cartItems->pluck('id'))
