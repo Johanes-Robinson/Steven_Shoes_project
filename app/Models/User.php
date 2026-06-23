@@ -12,7 +12,10 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
-    public const ADMIN_EMAIL = 'pardameansteven@gmail.com';
+    public const ADMIN_EMAILS = [
+        'pardameansteven@gmail.com',
+        'alicia.christiani.16@gmail.com',
+    ];
 
     public $incrementing = false;
 
@@ -25,7 +28,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'role',
         'phone',
-        'shoe_size',
         'address',
     ];
 
@@ -37,7 +39,6 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'shoe_size' => 'integer',
     ];
 
     protected static function booted(): void
@@ -60,7 +61,15 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public static function isAdminEmail(?string $email): bool
     {
-        return strtolower(trim((string) $email)) === self::ADMIN_EMAIL;
+        return in_array(strtolower(trim((string) $email)), static::adminEmails(), true);
+    }
+
+    public static function adminEmails(): array
+    {
+        return array_map(
+            fn (string $email) => strtolower(trim($email)),
+            self::ADMIN_EMAILS
+        );
     }
 
     public function isAdmin(): bool

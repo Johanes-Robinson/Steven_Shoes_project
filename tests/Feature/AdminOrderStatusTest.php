@@ -8,7 +8,7 @@ uses(RefreshDatabase::class);
 
 test('admin can update an order status', function () {
     $admin = User::factory()->create([
-        'email' => User::ADMIN_EMAIL,
+        'email' => User::ADMIN_EMAILS[0],
     ]);
 
     $customer = User::factory()->create();
@@ -41,7 +41,7 @@ test('admin can update an order status', function () {
 
 test('admin can open whatsapp chat from an order row', function () {
     $admin = User::factory()->create([
-        'email' => User::ADMIN_EMAIL,
+        'email' => User::ADMIN_EMAILS[1],
     ]);
 
     $customer = User::factory()->create([

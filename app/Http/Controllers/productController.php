@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class productController extends Controller
@@ -15,6 +16,7 @@ class productController extends Controller
         $this->authorizeAdmin($request);
 
         $products = Product::query()
+            ->with('sizes')
             ->latest()
             ->get();
 
@@ -37,11 +39,12 @@ class productController extends Controller
             'total_orders' => Transaction::count(),
             'total_products' => Product::count(),
             'total_customers' => User::query()
-                ->whereRaw('LOWER(email) != ?', [User::ADMIN_EMAIL])
+                ->whereNotIn(DB::raw('LOWER(email)'), User::adminEmails())
                 ->count(),
         ];
+        $sizeRange = Product::availableSizeRange();
 
-        return view('Admin.Dashboard', compact('products', 'orders', 'recentOrders', 'stats'));
+        return view('Admin.Dashboard', compact('products', 'orders', 'recentOrders', 'stats', 'sizeRange'));
     }
 
     public function store(Request $request)
@@ -56,17 +59,23 @@ class productController extends Controller
             'image' => ['required', 'image', 'max:2048'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'is_available' => ['required', 'boolean'],
+            'size_available' => ['nullable', 'array'],
+            'size_available.*' => ['nullable', 'boolean'],
         ]);
 
-        Product::create([
+        $product = Product::create([
             'name' => $data['name'],
             'category' => $data['category'],
-            'size' => $data['size'] ?? 42,
+            'size' => $data['size'] ?? $this->defaultSizeFromAvailability($request),
             'description' => $data['description'],
             'image_url' => $this->storeProductImage($request),
             'price' => $data['price'],
             'is_available' => $data['is_available'],
         ]);
+
+        if ($request->has('size_available')) {
+            $this->syncSizeAvailability($product, $request);
+        }
 
         return redirect()
             ->route('admin.dashboard')
@@ -85,6 +94,8 @@ class productController extends Controller
             'image' => ['nullable', 'image', 'max:2048'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'is_available' => ['required', 'boolean'],
+            'size_available' => ['nullable', 'array'],
+            'size_available.*' => ['nullable', 'boolean'],
         ]);
 
         $imageUrl = $product->image_url;
@@ -97,14 +108,37 @@ class productController extends Controller
         $product->update([
             'name' => $data['name'],
             'category' => $data['category'],
-            'size' => $data['size'] ?? $product->size,
+            'size' => $data['size'] ?? ($request->has('size_available') ? $this->defaultSizeFromAvailability($request, $product->size) : $product->size),
             'description' => $data['description'],
             'image_url' => $imageUrl,
             'price' => $data['price'],
             'is_available' => $data['is_available'],
         ]);
 
+        if ($request->has('size_available')) {
+            $this->syncSizeAvailability($product, $request);
+        }
+
         return back()->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    public function updateSizeAvailability(Request $request, Product $product)
+    {
+        $this->authorizeAdmin($request);
+
+        $request->validate([
+            'size_available' => ['nullable', 'array'],
+            'size_available.*' => ['nullable', 'boolean'],
+        ]);
+
+        $this->syncSizeAvailability($product, $request);
+
+        $product->update([
+            'size' => $this->defaultSizeFromAvailability($request, $product->size),
+            'is_available' => in_array(true, $this->normalizedSizeAvailability($request), true),
+        ]);
+
+        return back()->with('success', 'Ketersediaan ukuran produk berhasil diperbarui.');
     }
 
     public function updateAvailability(Request $request, Product $product)
@@ -126,7 +160,10 @@ class productController extends Controller
     {
         $this->authorizeAdmin($request);
 
-        $this->deleteProductImage($product->image_url);
+        if (! $product->transactionDetails()->exists()) {
+            $this->deleteProductImage($product->image_url);
+        }
+
         $product->delete();
 
         return back()->with('success', 'Produk berhasil dihapus.');
@@ -142,6 +179,44 @@ class productController extends Controller
         $path = $request->file('image')->store('products', 'public');
 
         return '/storage/'.$path;
+    }
+
+    private function syncSizeAvailability(Product $product, Request $request): void
+    {
+        $now = now();
+
+        foreach ($this->normalizedSizeAvailability($request) as $size => $isAvailable) {
+            $product->sizes()->updateOrCreate(
+                ['size' => $size],
+                [
+                    'is_available' => $isAvailable,
+                    'updated_at' => $now,
+                ]
+            );
+        }
+    }
+
+    private function normalizedSizeAvailability(Request $request): array
+    {
+        $availability = [];
+        $input = $request->input('size_available', []);
+
+        foreach (Product::availableSizeRange() as $size) {
+            $availability[$size] = (bool) ($input[$size] ?? false);
+        }
+
+        return $availability;
+    }
+
+    private function defaultSizeFromAvailability(Request $request, int $fallback = 42): int
+    {
+        foreach ($this->normalizedSizeAvailability($request) as $size => $isAvailable) {
+            if ($isAvailable) {
+                return (int) $size;
+            }
+        }
+
+        return $fallback;
     }
 
     private function deleteProductImage(?string $imageUrl): void

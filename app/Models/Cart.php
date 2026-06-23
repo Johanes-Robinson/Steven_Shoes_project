@@ -18,6 +18,7 @@ class Cart extends Model
         'id',
         'user_id',
         'product_id',
+        'selected_size',
         'quantity',
     ];
 
@@ -28,8 +29,16 @@ class Cart extends Model
     ];
 
     protected $casts = [
+        'selected_size' => 'integer',
         'quantity' => 'integer',
     ];
+
+    public function getSelectedSizeAttribute($value): ?int
+    {
+        return $value !== null
+            ? (int) $value
+            : ($this->product?->size ? (int) $this->product->size : null);
+    }
 
     protected static function booted(): void
     {

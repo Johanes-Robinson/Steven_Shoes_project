@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [productController::class, 'dashboard'])->name('admin.dashboard');
     Route::post('/admin/products', [productController::class, 'store'])->name('admin.products.store');
     Route::put('/admin/products/{product}', [productController::class, 'update'])->name('admin.products.update');
+    Route::patch('/admin/products/{product}/sizes', [productController::class, 'updateSizeAvailability'])->name('admin.products.sizes');
     Route::patch('/admin/products/{product}/availability', [productController::class, 'updateAvailability'])->name('admin.products.availability');
     Route::delete('/admin/products/{product}', [productController::class, 'destroy'])->name('admin.products.destroy');
     Route::patch('/admin/orders/{transaction}/status', [TransactionController::class, 'updateStatus'])->name('admin.orders.status');

@@ -9,7 +9,6 @@ test('customer can update their profile from the dashboard form', function () {
     $user = User::factory()->create([
         'name' => 'Old Name',
         'phone' => null,
-        'shoe_size' => null,
         'address' => null,
     ]);
 
@@ -19,7 +18,6 @@ test('customer can update their profile from the dashboard form', function () {
         ->put('/profile/update', [
             'name' => 'Steven Customer',
             'phone' => '081234567890',
-            'shoe_size' => 42,
             'address' => 'Jl. Mangga Dua No. 10',
         ]);
 
@@ -31,7 +29,6 @@ test('customer can update their profile from the dashboard form', function () {
         'id' => $user->id,
         'name' => 'Steven Customer',
         'phone' => '081234567890',
-        'shoe_size' => 42,
         'address' => 'Jl. Mangga Dua No. 10',
     ]);
 });

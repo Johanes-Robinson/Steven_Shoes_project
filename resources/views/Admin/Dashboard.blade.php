@@ -213,7 +213,7 @@
                                 <tr>
                                     <td class="py-3.5 font-mono font-bold text-brand-dark">#{{ $order->invoice_number }}</td>
                                     <td class="py-3.5 text-brand-secondary">{{ $order->created_at->format('d M Y, H:i') }}</td>
-                                    <td class="py-3.5 text-brand-dark font-medium">{{ $order->user->name ?? 'Pembeli' }}</td>
+                                    <td class="py-3.5 text-brand-dark font-medium">{{ $order->customerName() }}</td>
                                     <td class="py-3.5 text-brand-secondary uppercase font-semibold">{{ $order->payment_method }}</td>
                                     <td class="py-3.5 font-semibold text-brand-dark">Rp {{ number_format($order->total_price, 0, ',', '.') }}</td>
                                     <td class="py-3.5 text-right">
@@ -280,12 +280,16 @@
                                 <th class="p-4 pr-6">Nama Sepatu</th>
                                 <th class="p-4 pr-6">Kategori</th>
                                 <th class="p-4 pr-6">Harga</th>
+                                <th class="p-4 pr-6">Ukuran Tersedia</th>
                                 <th class="p-4 pr-6 text-center">Status Ketersediaan</th>
                                 <th class="p-4 pr-6 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[#F8F4EB]">
                             @forelse($products ?? [] as $product)
+                                @php
+                                    $sizeAvailability = $product->sizeAvailability();
+                                @endphp
                                 <tr class="hover:bg-brand-bg/10 transition-colors">
                                     <!-- Foto Pembuka -->
                                     <td class="p-4 pl-6">
@@ -306,7 +310,28 @@
                                     <td class="p-4 font-serif font-bold text-sm text-brand-dark">
                                         Rp {{ number_format($product->price, 0, ',', '.') }}
                                     </td>
-                                    <!-- Status Ketersediaan (Sold Out / In Stock) -->
+                                    <td class="p-4 min-w-[360px]">
+                                        <form action="/admin/products/{{ $product->id }}/sizes" method="POST" class="space-y-3">
+                                            @csrf
+                                            @method('PATCH')
+                                            <div class="grid grid-cols-4 xl:grid-cols-6 gap-2">
+                                                @foreach($sizeRange ?? range(36, 46) as $size)
+                                                    <label class="flex items-center gap-2 bg-brand-bg border border-[#EADBCE] rounded-lg px-2.5 py-2 text-xs font-bold text-brand-dark cursor-pointer">
+                                                        <input type="checkbox"
+                                                            name="size_available[{{ $size }}]"
+                                                            value="1"
+                                                            class="accent-brand-dark"
+                                                            @checked($sizeAvailability[$size] ?? false)>
+                                                        <span>EU {{ $size }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            <button type="submit" class="bg-brand-dark text-white hover:bg-[#2A190C] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors">
+                                                Update Ukuran
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <!-- Status Ketersediaan Produk -->
                                     <td class="p-4">
                                         <form action="/admin/products/{{ $product->id }}/availability" method="POST" class="flex items-center justify-center gap-2">
                                             @csrf
@@ -335,7 +360,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="p-12 text-center text-brand-secondary">
+                                    <td colspan="7" class="p-12 text-center text-brand-secondary">
                                         Belum ada produk yang diupload. Klik tombol "Tambah Sepatu Baru" untuk mengisi katalog.
                                     </td>
                                 </tr>
@@ -373,10 +398,10 @@
                         <tbody class="divide-y divide-[#F8F4EB]">
                             @forelse($orders ?? [] as $order)
                                 @php
-                                    $customer = $order->user;
-                                    $customerName = $customer?->name ?? 'Customer';
+                                    $customerName = $order->customerName();
+                                    $customerPhone = $order->customerPhone();
                                     $orderStatus = str_replace('_', ' ', $order->status);
-                                    $whatsappUrl = $customer?->whatsappUrl(
+                                    $whatsappUrl = $order->customerWhatsappUrl(
                                         "Halo {$customerName}, kami dari Steven Shoes ingin menginformasikan pesanan #{$order->invoice_number} dengan status {$orderStatus}."
                                     );
                                 @endphp
@@ -394,8 +419,8 @@
                                     <!-- Penerima & Kurir -->
                                     <td class="p-4">
                                         <div class="font-bold text-brand-dark">{{ $customerName }}</div>
-                                        @if($customer?->phone)
-                                            <div class="text-[10px] text-brand-secondary mt-0.5">WA: <span class="font-semibold">{{ $customer->phone }}</span></div>
+                                        @if($customerPhone)
+                                            <div class="text-[10px] text-brand-secondary mt-0.5">WA: <span class="font-semibold">{{ $customerPhone }}</span></div>
                                         @endif
                                         <div class="text-[10px] text-brand-secondary mt-0.5">Kurir: <span class="font-semibold uppercase">{{ $order->shipping_courier ?? 'JNE' }}</span></div>
                                     </td>
@@ -526,11 +551,11 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Status Ketersediaan (Pengganti Angka Stok) -->
+                    <!-- Status Ketersediaan Produk -->
                     <div class="space-y-1">
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-secondary">Status Ketersediaan</label>
                         <select name="is_available" required class="w-full px-4 py-3 bg-brand-bg/40 border border-[#EADBCE] focus:border-brand-dark rounded-xl text-brand-dark text-xs focus:outline-none transition-all cursor-pointer">
-                            <option value="1">Tersedia (In Stock)</option>
+                            <option value="1">Tersedia</option>
                             <option value="0">Habis (Sold Out)</option>
                         </select>
                     </div>
@@ -542,6 +567,22 @@
                         <input type="file" name="image" accept="image/*" required id="product-image-input"
                             class="w-full px-4 py-2.5 bg-brand-bg/40 border border-[#EADBCE] focus:border-brand-dark rounded-xl text-brand-dark file:mr-4 file:rounded-lg file:border-0 file:bg-brand-dark file:px-3 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-wider file:text-white text-xs focus:outline-none transition-all">
                         <p class="text-[10px] text-brand-secondary mt-1">Maksimal 2 MB. Gunakan foto JPG, PNG, atau WebP.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-brand-secondary">Ukuran Tersedia</label>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        @foreach($sizeRange ?? range(36, 46) as $size)
+                            <label class="flex items-center gap-2 px-3 py-2 bg-brand-bg/40 border border-[#EADBCE] focus-within:border-brand-dark rounded-xl text-brand-dark text-xs font-bold cursor-pointer">
+                                <input type="checkbox"
+                                    name="size_available[{{ $size }}]"
+                                    value="1"
+                                    class="accent-brand-dark"
+                                    @checked(old("size_available.$size"))>
+                                <span>EU {{ $size }}</span>
+                            </label>
+                        @endforeach
                     </div>
                 </div>
 

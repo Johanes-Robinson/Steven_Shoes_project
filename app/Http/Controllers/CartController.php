@@ -11,7 +11,7 @@ class CartController extends Controller
     public function index(Request $request)
     {
         $cartItems = Cart::query()
-            ->with('product')
+            ->with('product.sizes')
             ->where('user_id', $request->user()->id)
             ->latest()
             ->get();
@@ -26,10 +26,15 @@ class CartController extends Controller
     {
         $data = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
+            'selected_size' => ['nullable', 'integer', 'min:20', 'max:60'],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:99'],
         ]);
 
-        $product = Product::findOrFail($data['product_id']);
+        $product = Product::query()
+            ->with('sizes')
+            ->findOrFail($data['product_id']);
+        $selectedSize = (int) ($data['selected_size'] ?? $product->size);
+        $quantity = (int) ($data['quantity'] ?? 1);
 
         if (! $product->is_available) {
             return response()->json(['message' => 'Produk sedang tidak tersedia.'], 422);
@@ -38,19 +43,25 @@ class CartController extends Controller
         $cart = Cart::query()
             ->where('user_id', $request->user()->id)
             ->where('product_id', $product->id)
+            ->where('selected_size', $selectedSize)
             ->first();
 
+        if (! $product->hasAvailableSize($selectedSize)) {
+            return response()->json(['message' => 'Ukuran yang dipilih sedang tidak tersedia.'], 422);
+        }
+
         if ($cart) {
-            $cart->increment('quantity', $data['quantity'] ?? 1);
+            $cart->increment('quantity', $quantity);
         } else {
             $cart = Cart::create([
                 'user_id' => $request->user()->id,
                 'product_id' => $product->id,
-                'quantity' => $data['quantity'] ?? 1,
+                'selected_size' => $selectedSize,
+                'quantity' => $quantity,
             ]);
         }
 
-        $cart->load('product');
+        $cart->load('product.sizes');
 
         return response()->json([
             'message' => 'Produk berhasil ditambahkan ke keranjang.',
@@ -77,8 +88,14 @@ class CartController extends Controller
             return response()->json(['message' => 'Produk dihapus dari keranjang.']);
         }
 
+        $cart->loadMissing('product.sizes');
+
+        if (! $cart->product?->hasAvailableSize((int) $cart->selected_size)) {
+            return response()->json(['message' => 'Ukuran yang dipilih sedang tidak tersedia.'], 422);
+        }
+
         $cart->update(['quantity' => $quantity]);
-        $cart->load('product');
+        $cart->load('product.sizes');
 
         return response()->json([
             'message' => 'Jumlah produk diperbarui.',

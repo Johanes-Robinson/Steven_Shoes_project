@@ -12,7 +12,6 @@ class userController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
-            'shoe_size' => ['nullable', 'integer', 'min:20', 'max:60'],
             'address' => ['nullable', 'string', 'max:1000'],
         ]);
 

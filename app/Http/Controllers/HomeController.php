@@ -17,6 +17,7 @@ class HomeController extends Controller
         if (Schema::hasTable('products')) {
             $images = Product::query()
                 ->where('is_available', true)
+                ->whereHas('sizes', fn ($query) => $query->where('is_available', true))
                 ->whereNotNull('image_url')
                 ->latest()
                 ->limit(10)
@@ -44,7 +45,9 @@ class HomeController extends Controller
 
         if (Schema::hasTable('products')) {
             $products = Product::query()
+                ->with('sizes')
                 ->where('is_available', true)
+                ->whereHas('sizes', fn ($query) => $query->where('is_available', true))
                 ->latest()
                 ->get();
         }
@@ -75,7 +78,9 @@ class HomeController extends Controller
         }
 
         $products = Product::query()
+            ->with('sizes')
             ->where('is_available', true)
+            ->whereHas('sizes', fn ($query) => $query->where('is_available', true))
             ->latest()
             ->get();
 

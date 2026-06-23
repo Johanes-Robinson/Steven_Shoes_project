@@ -200,6 +200,9 @@
                 <!-- GRID KATALOG PRODUK -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="product-grid">
                     @forelse($products ?? [] as $product)
+                        @php
+                            $availableSizes = $product->availableSizes();
+                        @endphp
                         <div class="product-card bg-white border border-[#EADBCE] rounded-3xl p-4 flex flex-col justify-between hover:shadow-lg transition-all" data-category="{{ $product->category_slug }}">
                             <div>
                                 <div class="relative rounded-2xl overflow-hidden aspect-square bg-[#F3ECDF] mb-4">
@@ -214,16 +217,29 @@
                                 <h4 class="font-serif text-base font-semibold text-brand-dark mt-1 line-clamp-1">{{ $product->name }}</h4>
                                 <p class="text-xs text-brand-secondary mt-1 line-clamp-2">{{ $product->description }}</p>
                             </div>
-                            <div class="flex items-center justify-between pt-4 mt-4 border-t border-[#FAF6EE]">
-                                <span class="font-serif text-base font-bold text-brand-dark">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
-                                
-                                <button onclick="addToCart(@js($product->id), @js($product->name), @js((float) $product->price), @js($product->image_url))" 
-                                        class="bg-brand-dark text-white p-2.5 rounded-xl hover:bg-brand-dark/95 transition-all flex items-center justify-center"
+                            <div class="space-y-3 pt-4 mt-4 border-t border-[#FAF6EE]">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="font-serif text-base font-bold text-brand-dark">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
+
+                                    <label class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-brand-secondary">
+                                        Ukuran
+                                        <select id="product-size-{{ $product->id }}" class="bg-brand-bg border border-[#EADBCE] rounded-lg px-2.5 py-1.5 text-xs font-bold text-brand-dark focus:outline-none focus:border-brand-dark">
+                                            @foreach($availableSizes as $size)
+                                                <option value="{{ $size }}" {{ (int) $product->size === (int) $size ? 'selected' : '' }}>{{ $size }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <button onclick="addToCart(@js($product->id), @js($product->name), @js((float) $product->price), @js($product->image_url), selectedProductSize(@js($product->id)))" 
+                                        class="w-full bg-brand-dark text-white px-4 py-2.5 rounded-xl hover:bg-brand-dark/95 transition-all flex items-center justify-center gap-2 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                                         title="Masukkan ke keranjang"
-                                        aria-label="Masukkan {{ $product->name }} ke keranjang">
+                                        aria-label="Masukkan {{ $product->name }} ke keranjang"
+                                        @disabled(empty($availableSizes))>
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
+                                    Tambah
                                 </button>
                             </div>
                         </div>
@@ -281,13 +297,16 @@
                             <div class="space-y-3">
                                 @foreach($order->items as $item)
                                     <div class="flex items-start gap-4">
-                                        <img src="{{ $item->product->image_url }}" 
-                                             alt="{{ $item->product->name }}" 
+                                        <img src="{{ $item->productImageUrl() }}" 
+                                             alt="{{ $item->productName() }}" 
                                              class="w-16 h-16 rounded-xl object-cover border border-[#EADBCE]"
                                              onerror="this.onerror=null; this.src='https://placehold.co/100x100/F3ECDF/3E2511?text=Sepatu';">
                                         <div class="flex-1">
-                                            <h4 class="font-bold text-sm text-brand-dark">{{ $item->product->name }}</h4>
+                                            <h4 class="font-bold text-sm text-brand-dark">{{ $item->productName() }}</h4>
                                             <p class="text-xs text-brand-secondary mt-0.5">Kuantitas: {{ $item->quantity }} pcs</p>
+                                            @if($item->productSize())
+                                                <p class="text-xs text-brand-secondary mt-0.5">Ukuran: {{ $item->productSize() }}</p>
+                                            @endif
                                             <p class="text-sm font-serif font-bold text-brand-dark mt-2">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
                                         </div>
                                     </div>
@@ -336,15 +355,6 @@
                                 <input type="text" name="phone" value="{{ $user->phone ?? '' }}" class="w-full px-4 py-3 bg-brand-bg/40 border border-[#E4D5BE] focus:border-brand-dark rounded-xl text-brand-dark text-sm focus:outline-none transition-all">
                             </div>
 
-                            <div class="space-y-1">
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-brand-secondary">Ukuran Sepatu (EU)</label>
-                                <select name="shoe_size" class="w-full px-4 py-3 bg-brand-bg/40 border border-[#E4D5BE] focus:border-brand-dark rounded-xl text-brand-dark text-sm focus:outline-none transition-all">
-                                    <option value="">Pilih Ukuran</option>
-                                    @for($i = 36; $i <= 46; $i++)
-                                        <option value="{{ $i }}" {{ ($user->shoe_size ?? '') == $i ? 'selected' : '' }}>{{ $i }}</option>
-                                    @endfor
-                                </select>
-                            </div>
                         </div>
 
                         <div class="space-y-1">
@@ -396,6 +406,9 @@
                                             <div class="flex-1 min-w-0">
                                                 <h4 class="font-bold text-xs text-brand-dark truncate">{{ $item->name }}</h4>
                                                 <p class="text-xs font-serif font-bold text-brand-dark mt-1">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
+                                                @if($item->selected_size)
+                                                    <p class="text-[10px] text-brand-secondary mt-0.5">Ukuran: {{ $item->selected_size }}</p>
+                                                @endif
                                                 
                                                 <div class="flex items-center gap-2.5 mt-2">
                                                     <button onclick="updateCartQuantity('{{ $item->id }}', -1)" class="w-6 h-6 rounded-full bg-brand-bg hover:bg-[#EADBCE] text-brand-dark text-xs font-bold flex items-center justify-center">-</button>
@@ -482,8 +495,16 @@
             return String(item.product_id || item.id);
         }
 
-        function cartItemMatches(item, id) {
-            return String(item.id) === String(id) || cartItemProductId(item) === String(id);
+        function cartItemSelectedSize(item) {
+            return Number.parseInt(item.selected_size, 10) || null;
+        }
+
+        function cartItemMatches(item, id, selectedSize = null) {
+            if (selectedSize !== null) {
+                return cartItemProductId(item) === String(id) && cartItemSelectedSize(item) === Number.parseInt(selectedSize, 10);
+            }
+
+            return String(item.id) === String(id);
         }
 
         function cartItemQuantity(item) {
@@ -497,8 +518,15 @@
         function cartCheckoutPayload() {
             return cart.map(item => ({
                 id: cartItemProductId(item),
+                selected_size: cartItemSelectedSize(item),
                 quantity: cartItemQuantity(item)
             }));
+        }
+
+        function selectedProductSize(productId) {
+            const selector = document.getElementById(`product-size-${productId}`);
+
+            return Number.parseInt(selector?.value, 10) || 42;
         }
 
         function toggleCartDrawer() {
@@ -518,15 +546,17 @@
             }
         }
 
-        function addToCart(id, name, price, imageUrl) {
-            const existingItem = cart.find(item => cartItemMatches(item, id));
+        function addToCart(id, name, price, imageUrl, selectedSize) {
+            const size = Number.parseInt(selectedSize, 10) || 42;
+            const existingItem = cart.find(item => cartItemMatches(item, id, size));
             
             if (existingItem) {
                 existingItem.quantity = cartItemQuantity(existingItem) + 1;
             } else {
                 cart.push({
-                    id: id,
+                    id: `${id}-${size}`,
                     product_id: id,
+                    selected_size: size,
                     name: name,
                     price: price,
                     image: imageUrl,
@@ -535,7 +565,7 @@
             }
 
             updateCartUI();
-            showInstantToast(`✓ ${name} dimasukkan ke keranjang!`);
+            showInstantToast(`✓ ${name} ukuran ${size} dimasukkan ke keranjang!`);
         }
 
         function updateCartQuantity(id, change) {
@@ -597,6 +627,7 @@
                             <div class="flex-1 min-w-0">
                                 <h4 class="font-bold text-xs text-brand-dark truncate">${item.name}</h4>
                                 <p class="text-xs font-serif font-bold text-brand-dark mt-1">Rp ${cartItemPrice(item).toLocaleString('id-ID')}</p>
+                                ${cartItemSelectedSize(item) ? `<p class="text-[10px] text-brand-secondary mt-0.5">Ukuran: ${cartItemSelectedSize(item)}</p>` : ''}
                                 
                                 <div class="flex items-center gap-2.5 mt-2">
                                     <button onclick="updateCartQuantity('${item.id}', -1)" class="w-6 h-6 rounded-full bg-brand-bg hover:bg-[#EADBCE] text-brand-dark text-xs font-bold flex items-center justify-center">-</button>

@@ -22,7 +22,7 @@ return new class extends Migration
                     $table->foreign('product_id')
                         ->references('id')
                         ->on('products')
-                        ->onDelete('cascade');
+                        ->nullOnDelete();
                 }
             });
 
@@ -38,14 +38,18 @@ return new class extends Migration
                 ->on('transaction')
                 ->onDelete('cascade');
 
-            $table->string('product_id');
+            $table->string('product_id')->nullable();
             $table->foreign('product_id')
                 ->references('id')
                 ->on('products')
-                ->onDelete('cascade');
+                ->nullOnDelete();
 
             $table->integer('quantity');
             $table->decimal('price', 12, 2);
+            $table->string('product_name')->nullable();
+            $table->string('product_category')->nullable();
+            $table->unsignedInteger('product_size')->nullable();
+            $table->string('product_image_url')->nullable();
 
             $table->timestamps();
         });

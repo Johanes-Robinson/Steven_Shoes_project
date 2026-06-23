@@ -25,6 +25,9 @@ class Transaction extends Model
         'payment_method',
         'shipping_address',
         'shipping_courier',
+        'customer_name',
+        'customer_email',
+        'customer_phone',
     ];
 
     protected $casts = [
@@ -73,5 +76,51 @@ class Transaction extends Model
     public function setTotalPriceAttribute($value): void
     {
         $this->attributes['total_amount'] = $value;
+    }
+
+    public function customerName(): string
+    {
+        return (string) ($this->customer_name ?: $this->user?->name ?: 'Customer');
+    }
+
+    public function customerPhone(): ?string
+    {
+        return $this->customer_phone ?: $this->user?->phone;
+    }
+
+    public function customerWhatsappUrl(?string $message = null): ?string
+    {
+        $number = $this->whatsappNumber($this->customerPhone());
+
+        if (! $number) {
+            return null;
+        }
+
+        $query = filled($message) ? '?text='.rawurlencode($message) : '';
+
+        return "https://wa.me/{$number}{$query}";
+    }
+
+    private function whatsappNumber(?string $phone): ?string
+    {
+        $number = preg_replace('/\D+/', '', (string) $phone);
+
+        if ($number === '') {
+            return null;
+        }
+
+        if (str_starts_with($number, '620')) {
+            return '62'.substr($number, 3);
+        }
+
+        if (str_starts_with($number, '0')) {
+            return '62'.substr($number, 1);
+        }
+
+        if (str_starts_with($number, '8')) {
+            return '62'.$number;
+        }
+
+        return $number;
     }
 }

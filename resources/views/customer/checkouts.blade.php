@@ -187,6 +187,9 @@
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-bold text-xs text-brand-dark truncate">{{ $item->name }}</h4>
                                     <p class="text-[10px] text-brand-secondary mt-0.5">Jumlah: {{ $item->quantity }} pasang</p>
+                                    @if($item->selected_size)
+                                        <p class="text-[10px] text-brand-secondary mt-0.5">Ukuran: {{ $item->selected_size }}</p>
+                                    @endif
                                     <p class="text-xs font-serif font-bold text-brand-dark mt-1">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
                                 </div>
                             </div>

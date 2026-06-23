@@ -20,6 +20,16 @@ class TransactionDetail extends Model
         'product_id',
         'quantity',
         'price',
+        'product_name',
+        'product_category',
+        'product_size',
+        'product_image_url',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'product_size' => 'integer',
+        'quantity' => 'integer',
     ];
 
     protected static function booted(): void
@@ -39,5 +49,22 @@ class TransactionDetail extends Model
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id', 'id');
+    }
+
+    public function productName(): string
+    {
+        return (string) ($this->product_name ?: $this->product?->name ?: 'Produk dihapus');
+    }
+
+    public function productImageUrl(): string
+    {
+        return (string) ($this->product_image_url ?: $this->product?->image_url ?: 'https://placehold.co/100x100/F3ECDF/3E2511?text=Sepatu');
+    }
+
+    public function productSize(): ?int
+    {
+        return $this->product_size
+            ? (int) $this->product_size
+            : ($this->product?->size ? (int) $this->product->size : null);
     }
 }
