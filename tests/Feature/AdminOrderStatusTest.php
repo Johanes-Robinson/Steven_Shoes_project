@@ -40,6 +40,134 @@ test('admin can update an order status', function () {
     ]);
 });
 
+test('admin cannot update a final order status', function (string $finalStatus) {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => $finalStatus,
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'diproses',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('warning', 'Status pesanan final tidak bisa diubah lagi.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => $finalStatus,
+    ]);
+})->with(['selesai', 'batal']);
+
+test('admin cannot cancel a paid order', function (string $paidStatus) {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => $paidStatus,
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'batal',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('warning', 'Pesanan yang sudah dibayar tidak bisa dibatalkan.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => $paidStatus,
+    ]);
+})->with(['diproses', 'dikirim']);
+
+test('admin cannot return a paid order to pending payment', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'diproses',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'menunggu_pembayaran',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('warning', 'Pesanan yang sudah dibayar tidak bisa dikembalikan ke menunggu pembayaran.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => 'diproses',
+    ]);
+});
+
+test('admin dashboard hides cancel option for paid orders', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[1],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'diproses',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $this
+        ->actingAs($admin)
+        ->get('/admin/dashboard')
+        ->assertOk()
+        ->assertSee('value="diproses"', false)
+        ->assertDontSee('value="menunggu_pembayaran"', false)
+        ->assertDontSee('value="batal"', false);
+});
+
 test('admin can open whatsapp chat from an order row', function () {
     $admin = User::factory()->create([
         'email' => User::adminEmails()[1],

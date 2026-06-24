@@ -190,6 +190,18 @@ class TransactionController extends Controller
             'status' => ['required', 'in:menunggu_pembayaran,diproses,dikirim,selesai,batal'],
         ]);
 
+        if ($transaction->isFinal()) {
+            return back()->with('warning', 'Status pesanan final tidak bisa diubah lagi.');
+        }
+
+        if ($data['status'] === 'batal' && ! $transaction->canBeCanceled()) {
+            return back()->with('warning', 'Pesanan yang sudah dibayar tidak bisa dibatalkan.');
+        }
+
+        if ($data['status'] === 'menunggu_pembayaran' && $transaction->isPaid()) {
+            return back()->with('warning', 'Pesanan yang sudah dibayar tidak bisa dikembalikan ke menunggu pembayaran.');
+        }
+
         $transaction->update($data);
 
         return back()->with('success', 'Status pesanan berhasil diperbarui.');

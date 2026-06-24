@@ -43,10 +43,10 @@
             <a href="/" class="text-brand-dark hover:opacity-80 transition-opacity relative after:absolute after:bottom-[-6px] after:left-0 after:w-full after:h-[1.5px] after:bg-brand-dark">
                 Home
             </a>
-            <a href="/products" class="text-brand-secondary hover:text-brand-dark transition-colors duration-300">
+            <a href="{{ route('store.products') }}" class="text-brand-secondary hover:text-brand-dark transition-colors duration-300">
                 Products
             </a>
-            <a href="/location" class="text-brand-secondary hover:text-brand-dark transition-colors duration-300">
+            <a href="{{ route('store.location') }}" class="text-brand-secondary hover:text-brand-dark transition-colors duration-300">
                 Location
             </a>
         </nav>
@@ -75,8 +75,8 @@
             </svg>
         </button>
         <a href="/" class="text-brand-dark font-semibold">Home</a>
-        <a href="/products" class="text-brand-secondary hover:text-brand-dark transition-colors">Products</a>
-        <a href="/location" class="text-brand-secondary hover:text-brand-dark transition-colors">Location</a>
+        <a href="{{ route('store.products') }}" class="text-brand-secondary hover:text-brand-dark transition-colors">Products</a>
+        <a href="{{ route('store.location') }}" class="text-brand-secondary hover:text-brand-dark transition-colors">Location</a>
         
         <!-- Login Button di Mobile -->
         <a href="/login" class="mt-4 inline-flex items-center gap-2 text-sm font-sans font-semibold tracking-widest uppercase border border-brand-dark px-8 py-3 rounded-full bg-brand-dark text-white hover:bg-transparent hover:text-brand-dark transition-all duration-300">

@@ -401,6 +401,8 @@
                                     $customerName = $order->customerName();
                                     $customerPhone = $order->customerPhone();
                                     $orderStatus = str_replace('_', ' ', $order->status);
+                                    $isFinalStatus = $order->isFinal();
+                                    $isPaid = $order->isPaid();
                                     $whatsappUrl = $order->customerWhatsappUrl(
                                         "Halo {$customerName}, kami dari Steven Shoes ingin menginformasikan pesanan #{$order->invoice_number} dengan status {$orderStatus}."
                                     );
@@ -460,23 +462,34 @@
                                                 </span>
                                             @endif
 
-                                            <form action="/admin/orders/{{ $order->id }}/status" method="POST" class="inline-flex gap-2">
-                                                @csrf
-                                                @method('PATCH')
-                                                
-                                                <!-- Pilihan Perubahan Status -->
-                                                <select name="status" class="bg-brand-bg border border-[#EADBCE] text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-dark cursor-pointer text-brand-dark">
-                                                    <option value="menunggu_pembayaran" {{ $order->status == 'menunggu_pembayaran' ? 'selected' : '' }}>Menunggu Bayar</option>
-                                                    <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Diproses</option>
-                                                    <option value="dikirim" {{ $order->status == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
-                                                    <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                                    <option value="batal" {{ $order->status == 'batal' ? 'selected' : '' }}>Batal</option>
-                                                </select>
+                                            @if($isFinalStatus)
+                                                <span title="Status selesai dan batal bersifat final"
+                                                    class="inline-flex items-center justify-center bg-brand-bg text-brand-secondary border border-[#EADBCE] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg whitespace-nowrap cursor-not-allowed">
+                                                    Status final
+                                                </span>
+                                            @else
+                                                <form action="/admin/orders/{{ $order->id }}/status" method="POST" class="inline-flex gap-2">
+                                                    @csrf
+                                                    @method('PATCH')
 
-                                                <button type="submit" class="bg-brand-dark text-white hover:bg-[#2A190C] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors">
-                                                    Update
-                                                </button>
-                                            </form>
+                                                    <!-- Pilihan Perubahan Status -->
+                                                    <select name="status" class="bg-brand-bg border border-[#EADBCE] text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-dark cursor-pointer text-brand-dark">
+                                                        @if(! $isPaid)
+                                                            <option value="menunggu_pembayaran" {{ $order->status == 'menunggu_pembayaran' ? 'selected' : '' }}>Menunggu Bayar</option>
+                                                        @endif
+                                                        <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Diproses</option>
+                                                        <option value="dikirim" {{ $order->status == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
+                                                        <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                                                        @if(! $isPaid)
+                                                            <option value="batal" {{ $order->status == 'batal' ? 'selected' : '' }}>Batal</option>
+                                                        @endif
+                                                    </select>
+
+                                                    <button type="submit" class="bg-brand-dark text-white hover:bg-[#2A190C] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors">
+                                                        Update
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

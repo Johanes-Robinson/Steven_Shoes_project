@@ -37,9 +37,9 @@
         </a>
         <nav class="hidden sm:flex items-center gap-6 text-xs font-semibold uppercase tracking-widest">
             <a href="/" class="text-brand-secondary hover:text-brand-dark transition-colors">Home</a>
-            <a href="/products" class="text-brand-secondary hover:text-brand-dark transition-colors">Products</a>
-            <a href="/location" class="text-brand-dark">Location</a>
-            <a href="/shop" class="border border-brand-dark px-5 py-2.5 rounded-full hover:bg-brand-dark hover:text-white transition-all">Shop</a>
+            <a href="{{ route('store.products') }}" class="text-brand-secondary hover:text-brand-dark transition-colors">Products</a>
+            <a href="{{ route('store.location') }}" class="text-brand-dark">Location</a>
+            <a href="{{ route('store.shop') }}" class="border border-brand-dark px-5 py-2.5 rounded-full hover:bg-brand-dark hover:text-white transition-all">Shop</a>
         </nav>
     </header>
 

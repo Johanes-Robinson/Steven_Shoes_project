@@ -12,9 +12,15 @@ use App\Http\Middleware\NormalizeHtmlEncodedQueryString;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/products', [HomeController::class, 'products'])->name('products');
-Route::get('/shop', [HomeController::class, 'shop'])->name('shop');
-Route::get('/location', [HomeController::class, 'location'])->name('location');
+Route::prefix('store')->name('store.')->group(function () {
+    Route::get('/products', [HomeController::class, 'products'])->name('products');
+    Route::get('/shop', [HomeController::class, 'shop'])->name('shop');
+    Route::get('/location', [HomeController::class, 'location'])->name('location');
+});
+
+Route::redirect('/products', '/store/products');
+Route::redirect('/shop', '/store/shop');
+Route::redirect('/location', '/store/location');
 
 Route::get('/email/verify', [verified_emailController::class, 'show'])->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', [verified_emailController::class, 'verify'])

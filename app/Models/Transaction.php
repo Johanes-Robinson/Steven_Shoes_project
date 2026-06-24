@@ -10,6 +10,17 @@ class Transaction extends Model
 {
     use HasFactory;
 
+    public const FINAL_STATUSES = [
+        'selesai',
+        'batal',
+    ];
+
+    public const PAID_STATUSES = [
+        'diproses',
+        'dikirim',
+        'selesai',
+    ];
+
     protected $table = 'transaction';
 
     public $incrementing = false;
@@ -73,6 +84,31 @@ class Transaction extends Model
     public function setTotalPriceAttribute($value): void
     {
         $this->attributes['total_amount'] = $value;
+    }
+
+    public static function isFinalStatus(?string $status): bool
+    {
+        return in_array($status, self::FINAL_STATUSES, true);
+    }
+
+    public function isFinal(): bool
+    {
+        return static::isFinalStatus($this->status);
+    }
+
+    public static function isPaidStatus(?string $status): bool
+    {
+        return in_array($status, self::PAID_STATUSES, true);
+    }
+
+    public function isPaid(): bool
+    {
+        return static::isPaidStatus($this->status);
+    }
+
+    public function canBeCanceled(): bool
+    {
+        return $this->status === 'menunggu_pembayaran';
     }
 
     public function customerName(): string
