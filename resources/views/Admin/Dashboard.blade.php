@@ -219,9 +219,11 @@
                                     <td class="py-3.5 text-right">
                                         <span class="px-2.5 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider 
                                             @if($order->status == 'selesai') bg-green-500/10 text-green-700
+                                            @elseif($order->status == 'dikirim') bg-indigo-500/10 text-indigo-700
                                             @elseif($order->status == 'diproses') bg-blue-500/10 text-blue-700
+                                            @elseif($order->status == 'batal') bg-red-500/10 text-red-700
                                             @else bg-amber-500/10 text-amber-700 @endif">
-                                            {{ $order->status }}
+                                            {{ $order->statusLabel() }}
                                         </span>
                                     </td>
                                 </tr>
@@ -400,9 +402,8 @@
                                 @php
                                     $customerName = $order->customerName();
                                     $customerPhone = $order->customerPhone();
-                                    $orderStatus = str_replace('_', ' ', $order->status);
+                                    $orderStatus = $order->statusLabel();
                                     $isFinalStatus = $order->isFinal();
-                                    $isPaid = $order->isPaid();
                                     $whatsappUrl = $order->customerWhatsappUrl(
                                         "Halo {$customerName}, kami dari Steven Shoes ingin menginformasikan pesanan #{$order->invoice_number} dengan status {$orderStatus}."
                                     );
@@ -435,10 +436,11 @@
                                     <td class="p-4">
                                         <span class="px-3 py-1 rounded-full text-[9px] uppercase font-bold tracking-wider 
                                             @if($order->status == 'selesai') bg-green-500/10 text-green-700
+                                            @elseif($order->status == 'dikirim') bg-indigo-500/10 text-indigo-700
                                             @elseif($order->status == 'diproses') bg-blue-500/10 text-blue-700
                                             @elseif($order->status == 'batal') bg-red-500/10 text-red-700
                                             @else bg-amber-500/10 text-amber-700 @endif">
-                                            {{ $order->status }}
+                                            {{ $order->statusLabel() }}
                                         </span>
                                     </td>
                                     <!-- Aksi Pembaruan Status -->
@@ -474,15 +476,9 @@
 
                                                     <!-- Pilihan Perubahan Status -->
                                                     <select name="status" class="bg-brand-bg border border-[#EADBCE] text-[10px] font-bold rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-dark cursor-pointer text-brand-dark">
-                                                        @if(! $isPaid)
-                                                            <option value="menunggu_pembayaran" {{ $order->status == 'menunggu_pembayaran' ? 'selected' : '' }}>Menunggu Bayar</option>
-                                                        @endif
-                                                        <option value="diproses" {{ $order->status == 'diproses' ? 'selected' : '' }}>Diproses</option>
-                                                        <option value="dikirim" {{ $order->status == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
-                                                        <option value="selesai" {{ $order->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                                        @if(! $isPaid)
-                                                            <option value="batal" {{ $order->status == 'batal' ? 'selected' : '' }}>Batal</option>
-                                                        @endif
+                                                        @foreach($order->adminStatusOptions() as $status => $label)
+                                                            <option value="{{ $status }}" {{ $order->status == $status ? 'selected' : '' }}>{{ $label }}</option>
+                                                        @endforeach
                                                     </select>
 
                                                     <button type="submit" class="bg-brand-dark text-white hover:bg-[#2A190C] text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors">

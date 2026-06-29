@@ -21,6 +21,14 @@ class Transaction extends Model
         'selesai',
     ];
 
+    public const STATUS_LABELS = [
+        'menunggu_pembayaran' => 'Menunggu Pembayaran',
+        'diproses' => 'Diproses',
+        'dikirim' => 'Dikirim',
+        'selesai' => 'Selesai',
+        'batal' => 'Batal',
+    ];
+
     protected $table = 'transaction';
 
     public $incrementing = false;
@@ -32,14 +40,29 @@ class Transaction extends Model
         'total_amount',
         'payment_method',
         'shipping_address',
+        'shipping_destination_postal_code',
         'shipping_courier',
+        'shipping_courier_code',
+        'shipping_service_code',
+        'shipping_service_name',
+        'shipping_estimation',
+        'shipping_cost',
         'customer_name',
         'customer_email',
         'customer_phone',
+        'snap_token',
+        'snap_redirect_url',
+        'midtrans_transaction_id',
+        'midtrans_payment_type',
+        'midtrans_status',
+        'midtrans_fraud_status',
+        'paid_at',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -109,6 +132,42 @@ class Transaction extends Model
     public function canBeCanceled(): bool
     {
         return $this->status === 'menunggu_pembayaran';
+    }
+
+    public function canBeShipped(): bool
+    {
+        return in_array($this->status, ['diproses', 'dikirim'], true);
+    }
+
+    public function canBeCompleted(): bool
+    {
+        return $this->status === 'dikirim';
+    }
+
+    public static function labelForStatus(?string $status): string
+    {
+        return self::STATUS_LABELS[$status] ?? (string) $status;
+    }
+
+    public function statusLabel(): string
+    {
+        return static::labelForStatus($this->status);
+    }
+
+    public function adminStatusOptions(): array
+    {
+        $statuses = match ($this->status) {
+            'menunggu_pembayaran' => ['menunggu_pembayaran', 'diproses', 'batal'],
+            'diproses' => ['diproses', 'dikirim'],
+            'dikirim' => ['diproses', 'dikirim', 'selesai'],
+            default => [$this->status],
+        };
+
+        return array_reduce($statuses, function (array $options, string $status) {
+            $options[$status] = static::labelForStatus($status);
+
+            return $options;
+        }, []);
     }
 
     public function customerName(): string

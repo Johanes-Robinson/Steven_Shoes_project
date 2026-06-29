@@ -70,7 +70,7 @@
                 <div class="flex items-center justify-between gap-4 text-sm">
                     <span class="text-brand-secondary">Status Pesanan</span>
                     <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
-                        {{ $transaction->status }}
+                        {{ $transaction->statusLabel() }}
                     </span>
                 </div>
             </div>

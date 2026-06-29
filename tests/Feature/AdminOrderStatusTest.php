@@ -40,6 +40,142 @@ test('admin can update an order status', function () {
     ]);
 });
 
+test('admin can mark a processed order as shipped', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'diproses',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'dikirim',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('success', 'Status pesanan berhasil diperbarui.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => 'dikirim',
+    ]);
+});
+
+test('admin cannot complete a processed order before it is shipped', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'diproses',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'selesai',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('warning', 'Pesanan hanya bisa diselesaikan setelah statusnya dikirim.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => 'diproses',
+    ]);
+});
+
+test('admin can complete a shipped order', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'dikirim',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'selesai',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('success', 'Status pesanan berhasil diperbarui.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => 'selesai',
+    ]);
+});
+
+test('admin cannot ship an unpaid order', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[0],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'menunggu_pembayaran',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $response = $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'dikirim',
+        ]);
+
+    $response
+        ->assertRedirect('/admin/dashboard')
+        ->assertSessionHas('warning', 'Pesanan hanya bisa dikirim setelah pembayaran diproses.');
+
+    $this->assertDatabaseHas('transaction', [
+        'id' => $transaction->id,
+        'status' => 'menunggu_pembayaran',
+    ]);
+});
+
 test('admin cannot update a final order status', function (string $finalStatus) {
     $admin = User::factory()->create([
         'email' => User::adminEmails()[0],
@@ -164,8 +300,43 @@ test('admin dashboard hides cancel option for paid orders', function () {
         ->get('/admin/dashboard')
         ->assertOk()
         ->assertSee('value="diproses"', false)
+        ->assertSee('value="dikirim"', false)
         ->assertDontSee('value="menunggu_pembayaran"', false)
+        ->assertDontSee('value="selesai"', false)
         ->assertDontSee('value="batal"', false);
+});
+
+test('customer order status follows admin updates', function () {
+    $admin = User::factory()->create([
+        'email' => User::adminEmails()[1],
+    ]);
+
+    $customer = User::factory()->create();
+
+    $transaction = new Transaction([
+        'status' => 'diproses',
+        'total_amount' => 250000,
+        'payment_method' => 'bca',
+        'shipping_address' => 'Jl. Mangga Dua No. 10',
+        'shipping_courier' => 'JNE',
+    ]);
+    $transaction->user()->associate($customer);
+    $transaction->save();
+
+    $this
+        ->actingAs($admin)
+        ->from('/admin/dashboard')
+        ->patch("/admin/orders/{$transaction->id}/status", [
+            'status' => 'dikirim',
+        ])
+        ->assertRedirect('/admin/dashboard');
+
+    $this
+        ->actingAs($customer)
+        ->get('/customer/dashboard')
+        ->assertOk()
+        ->assertSee('#'.$transaction->invoice_number)
+        ->assertSee('Dikirim');
 });
 
 test('admin can open whatsapp chat from an order row', function () {

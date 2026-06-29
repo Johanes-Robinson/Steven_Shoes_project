@@ -36,6 +36,7 @@ test('customer can complete a pending payment simulation', function () {
         ->get(route('orders.payment-success', $transaction))
         ->assertOk()
         ->assertSee('Pembayaran Berhasil')
+        ->assertSee('Diproses')
         ->assertSee('#'.$transaction->invoice_number);
 });
 

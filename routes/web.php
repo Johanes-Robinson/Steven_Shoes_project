@@ -22,6 +22,8 @@ Route::redirect('/products', '/store/products');
 Route::redirect('/shop', '/store/shop');
 Route::redirect('/location', '/store/location');
 
+Route::match(['get', 'post'], '/midtrans/notification', [TransactionController::class, 'notification'])->name('midtrans.notification');
+
 Route::get('/email/verify', [verified_emailController::class, 'show'])->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', [verified_emailController::class, 'verify'])
     ->middleware([NormalizeHtmlEncodedQueryString::class, 'signed', 'throttle:6,1'])
@@ -58,6 +60,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/checkout', [TransactionController::class, 'checkout'])->name('checkout');
     Route::post('/checkout', [TransactionController::class, 'prepareCheckout'])->name('checkout.prepare');
+    Route::post('/checkout/shipping-rates', [TransactionController::class, 'shippingRates'])->name('checkout.shipping-rates');
     Route::post('/checkout/process', [TransactionController::class, 'process'])->name('checkout.process');
     Route::get('/checkout/success/{transaction}', [TransactionController::class, 'success'])->name('checkout.success');
     Route::post('/orders/{transaction}/pay', [TransactionController::class, 'pay'])->name('orders.pay');

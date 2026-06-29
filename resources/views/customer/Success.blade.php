@@ -49,6 +49,11 @@
     <main class="max-w-xl mx-auto w-full px-6 py-12 flex-1 flex flex-col justify-center">
         
         <div class="bg-white border border-[#EADBCE] rounded-3xl p-6 sm:p-10 shadow-lg text-center space-y-8">
+            @if(session('warning'))
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-xs font-semibold text-amber-800">
+                    {{ session('warning') }}
+                </div>
+            @endif
             
             <!-- Icon Success -->
             <div class="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center text-green-600">
@@ -76,59 +81,50 @@
                 </h2>
             </div>
 
-            <!-- LOGIKA KONDISI BERDASARKAN METODE PEMBAYARAN -->
+            @php
+                $midtransReady = ($midtrans['enabled'] ?? false) && filled($transaction->snap_token);
+                $paymentLabel = match ($transaction->payment_method) {
+                    'bca' => 'Virtual Account BCA',
+                    'mandiri' => 'Mandiri Bill Payment',
+                    'qris' => 'QRIS',
+                    default => strtoupper((string) $transaction->payment_method),
+                };
+            @endphp
+
             <div class="space-y-4">
-                @if($transaction->payment_method == 'qris')
-                    <!-- Kondisi 1: QRIS -->
-                    <div class="space-y-4 bg-white border border-red-100 rounded-2xl p-6">
-                        <div class="flex items-center justify-center gap-2 text-red-600 font-bold text-sm uppercase tracking-wider">
+                @if($midtransReady)
+                    <div class="space-y-4 bg-white border border-green-100 rounded-2xl p-6">
+                        <div class="flex items-center justify-center gap-2 text-green-700 font-bold text-sm uppercase tracking-wider">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m0 11v1m5-10v.01M9 16v.01M5 8h.01M5 12h.01M5 16h.01M9 8h.01M15 8h.01M15 12h.01M15 16h.01M19 8h.01M19 12h.01M19 16h.01M9 12h.01" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                             </svg>
-                            Scan Kode QRIS
+                            Tagihan Midtrans Siap
                         </div>
-                        <p class="text-xs text-brand-secondary leading-relaxed max-w-sm mx-auto">Silakan scan kode QR di bawah ini menggunakan aplikasi dompet digital favorit Anda (Gopay, OVO, ShopeePay, Dana, dll).</p>
-                        
-                        <!-- QR Code Generator Placeholder (Estetik) -->
-                        <div class="mx-auto w-52 h-52 border-2 border-brand-dark rounded-2xl p-3 bg-white flex items-center justify-center">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=STEVENSHOES-{{ $transaction->id }}" 
-                                 alt="QRIS Pembayaran Steven Shoes" 
-                                 class="w-full h-full object-contain">
+                        <p class="text-xs text-brand-secondary leading-relaxed max-w-sm mx-auto">
+                            Metode pilihan Anda: <span class="font-bold text-brand-dark">{{ $paymentLabel }}</span>. Nomor VA, kode bayar, atau QRIS resmi akan muncul di halaman pembayaran Midtrans.
+                        </p>
+                        <div class="bg-[#FAF6EE] border border-[#E4D5BE] rounded-xl px-4 py-3 max-w-md mx-auto text-left text-xs text-brand-secondary space-y-2">
+                            <div class="flex items-center justify-between gap-4">
+                                <span>Invoice</span>
+                                <span class="font-mono font-bold text-brand-dark">#{{ $transaction->invoice_number }}</span>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <span>Status</span>
+                                <span class="font-bold text-amber-700">{{ $transaction->statusLabel() }}</span>
+                            </div>
                         </div>
-                        <p class="text-[10px] text-brand-secondary font-semibold italic">Masa berlaku QR code ini terbatas dalam waktu 15 menit.</p>
                     </div>
                 @else
-                    <!-- Kondisi 2: Virtual Account (BCA/Mandiri) -->
-                    <div class="space-y-4 bg-white border border-blue-100 rounded-2xl p-6">
-                        <div class="flex items-center justify-center gap-2 text-blue-700 font-bold text-sm uppercase tracking-wider">
+                    <div class="space-y-4 bg-white border border-amber-100 rounded-2xl p-6">
+                        <div class="flex items-center justify-center gap-2 text-amber-700 font-bold text-sm uppercase tracking-wider">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
                             </svg>
-                            Instruksi Transfer Virtual Account
+                            Midtrans Belum Siap
                         </div>
-                        
-                        <p class="text-xs text-brand-secondary max-w-sm mx-auto">
-                            Gunakan nomor rekening Virtual Account {{ strtoupper($transaction->payment_method) }} di bawah ini untuk menyelesaikan transfer dana Anda.
+                        <p class="text-xs text-brand-secondary leading-relaxed max-w-sm mx-auto">
+                            Tagihan sudah tercatat, tetapi token pembayaran Midtrans belum tersedia. Pastikan key Midtrans sudah diisi, lalu coba buat ulang link pembayaran.
                         </p>
-
-                        <!-- Nomor Rekening VA Box -->
-                        <div class="flex items-center justify-between bg-brand-bg px-4 py-3 rounded-xl border border-[#E4D5BE] max-w-md mx-auto">
-                            <span class="text-xs text-brand-secondary uppercase font-semibold">{{ strtoupper($transaction->payment_method) }} VA</span>
-                            <span id="va-code" class="font-mono text-base font-bold tracking-wider text-brand-dark">880123456789</span>
-                            
-                            <button onclick="copyToClipboard()" id="btn-copy" class="text-[10px] font-bold tracking-wider text-brand-dark bg-[#EFE7D8] hover:bg-[#E4D5BE] px-3 py-1.5 rounded-lg transition-colors focus:outline-none">
-                                Salin Kode
-                            </button>
-                        </div>
-
-                        <!-- Ringkasan Langkah Transfer Singkat -->
-                        <div class="text-left max-w-xs mx-auto pt-2">
-                            <ol class="list-decimal text-[11px] text-brand-secondary space-y-1.5 pl-4">
-                                <li>Pilih menu transfer <span class="font-bold">Virtual Account</span>.</li>
-                                <li>Masukkan kode rekening di atas.</li>
-                                <li>Pastikan nama tagihan yang muncul adalah <span class="font-bold">Steven Shoes</span>.</li>
-                            </ol>
-                        </div>
                     </div>
                 @endif
             </div>
@@ -136,12 +132,18 @@
             <!-- Tombol Navigasi Bawah -->
             <div class="flex flex-col sm:flex-row gap-4 pt-4 border-t border-[#FAF6EE]">
                 @if($transaction->status == 'menunggu_pembayaran')
-                    <form action="{{ route('orders.pay', $transaction) }}" method="POST" class="flex-1">
-                        @csrf
-                        <button type="submit" class="w-full bg-brand-dark hover:bg-brand-dark/95 text-white text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
-                            Bayar Sekarang
+                    @if($midtransReady)
+                        <button type="button" id="midtrans-pay-button" class="flex-1 bg-brand-dark hover:bg-brand-dark/95 text-white text-xs font-semibold py-3.5 rounded-xl transition-all text-center disabled:opacity-60">
+                            Bayar dengan Midtrans
                         </button>
-                    </form>
+                    @else
+                        <form action="{{ route('orders.pay', $transaction) }}" method="POST" class="flex-1">
+                            @csrf
+                            <button type="submit" class="w-full bg-brand-dark hover:bg-brand-dark/95 text-white text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
+                                Coba Buat Link Bayar
+                            </button>
+                        </form>
+                    @endif
                 @endif
                 <a href="/customer/dashboard" class="flex-1 border border-brand-dark hover:bg-brand-dark/5 text-brand-dark text-xs font-semibold py-3.5 rounded-xl transition-all text-center">
                     Cek Riwayat Pesanan
@@ -160,32 +162,47 @@
         &copy; 2026 STEVEN SHOES. All rights reserved. Hubungi admin kami jika Anda mengalami kendala pembayaran.
     </footer>
 
-    <!-- Script Salin No VA -->
-    <script>
-        function copyToClipboard() {
-            const vaText = document.getElementById('va-code').innerText;
-            const btnCopy = document.getElementById('btn-copy');
+    @if($midtransReady)
+        <script src="{{ $midtrans['snap_script_url'] }}" data-client-key="{{ $midtrans['client_key'] }}"></script>
+        <script>
+            const midtransPayButton = document.getElementById('midtrans-pay-button');
 
-            // Copy to clipboard using standard fallback
-            const tempInput = document.createElement('input');
-            tempInput.value = vaText;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
+            function resetMidtransButton() {
+                if (!midtransPayButton) {
+                    return;
+                }
 
-            // Ganti teks tombol sebagai notifikasi salin sukses
-            btnCopy.innerText = 'Tersalin!';
-            btnCopy.classList.replace('text-brand-dark', 'text-green-700');
-            btnCopy.classList.replace('bg-[#EFE7D8]', 'bg-green-100');
+                midtransPayButton.disabled = false;
+                midtransPayButton.innerText = 'Bayar dengan Midtrans';
+            }
 
-            setTimeout(() => {
-                btnCopy.innerText = 'Salin Kode';
-                btnCopy.classList.replace('text-green-700', 'text-brand-dark');
-                btnCopy.classList.replace('bg-green-100', 'bg-[#EFE7D8]');
-            }, 2500);
-        }
-    </script>
+            if (midtransPayButton) {
+                midtransPayButton.addEventListener('click', () => {
+                    if (!window.snap) {
+                        alert('Snap Midtrans belum berhasil dimuat. Silakan muat ulang halaman.');
+                        return;
+                    }
+
+                    midtransPayButton.disabled = true;
+                    midtransPayButton.innerText = 'Membuka Midtrans...';
+
+                    window.snap.pay(@js($transaction->snap_token), {
+                        onSuccess: function () {
+                            window.location.href = @js(route('orders.payment-success', $transaction));
+                        },
+                        onPending: function () {
+                            window.location.href = @js(route('checkout.success', $transaction));
+                        },
+                        onError: function () {
+                            alert('Pembayaran belum berhasil. Silakan coba lagi.');
+                            resetMidtransButton();
+                        },
+                        onClose: resetMidtransButton
+                    });
+                });
+            }
+        </script>
+    @endif
 
 </body>
 </html>

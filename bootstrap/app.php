@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'checkout',
             'checkout/process',
             'logout',
+            'midtrans/notification',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

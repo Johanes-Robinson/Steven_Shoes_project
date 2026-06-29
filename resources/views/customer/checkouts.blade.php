@@ -58,8 +58,9 @@
                     <p class="text-brand-secondary text-sm mt-2">Mohon lengkapi alamat pengiriman serta pilih metode pembayaran untuk menyelesaikan pesanan Anda.</p>
                 </div>
 
-                <form action="/checkout/process" method="POST" class="space-y-6">
+                <form action="/checkout/process" method="POST" class="space-y-6" id="checkout-form">
                     @csrf
+                    <input type="hidden" name="shipping_service_key" id="shipping_service_key" value="{{ old('shipping_service_key', ($biteshipReady ?? false) ? '' : 'legacy') }}">
 
                     <!-- 1. Alamat Pengiriman -->
                     <div class="bg-white border border-[#EADBCE] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">
@@ -88,26 +89,60 @@
                     <div class="bg-white border border-[#EADBCE] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">
                         <div class="flex items-center gap-3 border-b border-[#FAF6EE] pb-3">
                             <span class="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center font-bold text-sm">2</span>
-                            <h3 class="font-serif text-lg font-semibold">Opsi Kurir Pengiriman</h3>
+                            <h3 class="font-serif text-lg font-semibold">Ongkir & Kurir Biteship</h3>
                         </div>
 
-                        <div class="space-y-2">
-                            <label for="shipping_courier" class="block text-xs font-semibold uppercase tracking-wider text-brand-secondary">Pilih Kurir Ekspedisi</label>
-                            <div class="relative">
-                                <select 
-                                    name="shipping_courier" 
-                                    id="shipping_courier" 
-                                    required 
-                                    class="w-full px-4 py-3.5 bg-brand-bg/30 border border-[#E4D5BE] focus:border-brand-dark rounded-2xl text-brand-dark text-sm focus:outline-none transition-all appearance-none cursor-pointer"
-                                >
-                                    <option value="JNE" {{ old('shipping_courier') == 'JNE' ? 'selected' : '' }}>JNE - Layanan Reguler Express</option>
-                                    <option value="J&T" {{ old('shipping_courier') == 'J&T' ? 'selected' : '' }}>J&T - Kiriman Cepat Hemat</option>
-                                    <option value="Onsite" {{ old('shipping_courier') == 'Onsite' ? 'selected' : '' }}>Ambil di Toko (Onsite) - Tanpa Ongkos Kirim</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-brand-dark">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label for="shipping_destination_postal_code" class="block text-xs font-semibold uppercase tracking-wider text-brand-secondary">Kode Pos Tujuan</label>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <input
+                                        type="text"
+                                        inputmode="numeric"
+                                        maxlength="5"
+                                        name="shipping_destination_postal_code"
+                                        id="shipping_destination_postal_code"
+                                        value="{{ old('shipping_destination_postal_code') }}"
+                                        required
+                                        placeholder="Contoh: 40115"
+                                        class="flex-1 px-4 py-3.5 bg-brand-bg/30 border border-[#E4D5BE] focus:border-brand-dark rounded-2xl text-brand-dark text-sm focus:outline-none transition-all"
+                                    >
+                                    <button type="button" id="btn-check-shipping" class="px-5 py-3.5 bg-brand-dark hover:bg-brand-dark/95 text-white text-xs font-semibold rounded-2xl transition-all disabled:opacity-60">
+                                        Cek Ongkir
+                                    </button>
                                 </div>
+                                @error('shipping_destination_postal_code')
+                                    <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
+                                @enderror
+                                @error('shipping_service_key')
+                                    <p class="text-red-600 text-xs mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
+
+                            <div id="shipping-status" class="text-xs text-brand-secondary leading-relaxed">
+                                @if($biteshipReady ?? false)
+                                    Masukkan kode pos tujuan untuk melihat ongkir dari Biteship.
+                                @else
+                                    Biteship belum dikonfigurasi. Isi API key dan kode pos origin di file .env.
+                                @endif
+                            </div>
+
+                            <div id="shipping-options" class="space-y-3"></div>
+
+                            <label class="flex items-center justify-between p-4 bg-brand-bg/20 hover:bg-brand-bg/40 border border-[#E4D5BE] rounded-2xl cursor-pointer transition-all">
+                                <div class="flex items-center gap-4">
+                                    <input type="radio" name="shipping_pickup_option" value="pickup" class="accent-brand-dark w-4 h-4">
+                                    <div>
+                                        <p class="text-sm font-semibold text-brand-dark">Ambil di Toko</p>
+                                        <p class="text-xs text-brand-secondary mt-0.5">Tanpa ongkir, pesanan diambil langsung di toko</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded">GRATIS</span>
+                            </label>
+
+                            @if(! ($biteshipReady ?? false))
+                                <input type="hidden" name="shipping_courier" value="JNE">
+                            @endif
                         </div>
                     </div>
 
@@ -206,11 +241,11 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-brand-secondary">Biaya Pengiriman</span>
-                            <span class="font-medium text-green-700">Gratis Ongkir</span>
+                            <span class="font-medium text-green-700" id="shipping-cost-label">Pilih ongkir</span>
                         </div>
                         <div class="flex justify-between pt-4 border-t border-[#FAF6EE] text-base font-bold">
                             <span class="font-serif text-brand-dark">Total Pembayaran</span>
-                            <span class="font-serif text-lg text-brand-dark">
+                            <span class="font-serif text-lg text-brand-dark" id="checkout-total-label">
                                 Rp {{ number_format($cartSubtotal ?? 0, 0, ',', '.') }}
                             </span>
                         </div>
@@ -232,5 +267,134 @@
         </div>
     </main>
 
+    <script>
+        const subtotal = Number(@json((float) ($cartSubtotal ?? 0)));
+        const shippingServiceInput = document.getElementById('shipping_service_key');
+        const shippingCostLabel = document.getElementById('shipping-cost-label');
+        const totalLabel = document.getElementById('checkout-total-label');
+        const shippingStatus = document.getElementById('shipping-status');
+        const shippingOptions = document.getElementById('shipping-options');
+        const postalCodeInput = document.getElementById('shipping_destination_postal_code');
+        const checkShippingButton = document.getElementById('btn-check-shipping');
+        const checkoutForm = document.getElementById('checkout-form');
+        const pickupOption = document.querySelector('input[name="shipping_pickup_option"]');
+
+        function formatRupiah(value) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+
+        function setShipping(serviceKey, cost, label) {
+            shippingServiceInput.value = serviceKey;
+            shippingCostLabel.innerText = label;
+            shippingCostLabel.className = cost > 0 ? 'font-medium text-brand-dark' : 'font-medium text-green-700';
+            totalLabel.innerText = formatRupiah(subtotal + Number(cost || 0));
+        }
+
+        function renderRates(rates) {
+            shippingOptions.innerHTML = rates.map((rate, index) => `
+                <label class="flex items-center justify-between p-4 bg-brand-bg/20 hover:bg-brand-bg/40 border border-[#E4D5BE] rounded-2xl cursor-pointer transition-all">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <input type="radio" name="shipping_rate_option" value="${rate.service_key}" class="accent-brand-dark w-4 h-4" ${index === 0 ? 'checked' : ''}>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-brand-dark">${rate.courier_name} ${rate.service_name}</p>
+                            <p class="text-xs text-brand-secondary mt-0.5">${rate.duration ? `Estimasi ${rate.duration}` : 'Estimasi mengikuti kurir'}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-brand-dark bg-white border border-[#E4D5BE] px-2.5 py-1 rounded">${formatRupiah(rate.price)}</span>
+                </label>
+            `).join('');
+
+            shippingOptions.querySelectorAll('input[name="shipping_rate_option"]').forEach((input) => {
+                input.addEventListener('change', () => {
+                    const rate = rates.find((item) => item.service_key === input.value);
+                    if (! rate) {
+                        return;
+                    }
+
+                    if (pickupOption) {
+                        pickupOption.checked = false;
+                    }
+
+                    setShipping(rate.service_key, rate.price, formatRupiah(rate.price));
+                });
+            });
+
+            const firstRate = rates[0];
+            setShipping(firstRate.service_key, firstRate.price, formatRupiah(firstRate.price));
+        }
+
+        if (pickupOption) {
+            pickupOption.addEventListener('change', () => {
+                if (! pickupOption.checked) {
+                    return;
+                }
+
+                shippingOptions.querySelectorAll('input[name="shipping_rate_option"]').forEach((input) => {
+                    input.checked = false;
+                });
+                setShipping('pickup', 0, 'Gratis Ongkir');
+            });
+        }
+
+        if (checkShippingButton) {
+            checkShippingButton.addEventListener('click', async () => {
+                const destinationPostalCode = postalCodeInput.value.trim();
+
+                if (! /^\d{5}$/.test(destinationPostalCode)) {
+                    shippingStatus.innerText = 'Kode pos harus 5 digit angka.';
+                    return;
+                }
+
+                checkShippingButton.disabled = true;
+                checkShippingButton.innerText = 'Mengecek...';
+                shippingStatus.innerText = 'Mengambil ongkir dari Biteship...';
+                shippingOptions.innerHTML = '';
+
+                try {
+                    const response = await fetch(@json(route('checkout.shipping-rates')), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': @json(csrf_token())
+                        },
+                        body: JSON.stringify({ destination_postal_code: destinationPostalCode })
+                    });
+                    const data = await response.json();
+
+                    if (! response.ok) {
+                        throw new Error(data.message || 'Gagal mengambil ongkir.');
+                    }
+
+                    if (! data.rates || data.rates.length === 0) {
+                        throw new Error('Tidak ada layanan pengiriman tersedia.');
+                    }
+
+                    renderRates(data.rates);
+                    shippingStatus.innerText = 'Pilih layanan pengiriman yang tersedia.';
+                } catch (error) {
+                    shippingStatus.innerText = error.message;
+                    setShipping('', 0, 'Pilih ongkir');
+                } finally {
+                    checkShippingButton.disabled = false;
+                    checkShippingButton.innerText = 'Cek Ongkir';
+                }
+            });
+        }
+
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', (event) => {
+                if (! shippingServiceInput.value) {
+                    event.preventDefault();
+                    shippingStatus.innerText = 'Pilih layanan pengiriman dulu sebelum lanjut pembayaran.';
+                    shippingStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+    </script>
 </body>
 </html>

@@ -47,7 +47,9 @@
     <!-- JEMBATAN DATA LARAVEL ASLI KE JAVASCRIPT -->
     <div id="laravel-bridge-data" class="hidden" 
          data-cart="{{ json_encode($cartItems ?? []) }}"
-         data-user-name="{{ $user->name ?? '' }}">
+         data-user-name="{{ $user->name ?? '' }}"
+         data-user-whatsapp-complete="{{ $user->whatsappNumber() ? '1' : '0' }}"
+         data-profile-url="{{ route('customer.dashboard') }}#profil">
     </div>
 
     <div class="min-h-screen flex flex-col md:flex-row">
@@ -131,6 +133,21 @@
 
         <!-- MAIN WORKSPACE: Area Toko & Pengaturan -->
         <main class="flex-1 p-4 sm:p-8 lg:p-12 overflow-y-auto max-w-7xl mx-auto w-full">
+            @if(session('success') || session('warning'))
+                <div class="mb-6 space-y-3">
+                    @if(session('success'))
+                        <div class="bg-green-50 border border-green-200 text-green-800 text-sm font-semibold px-5 py-3 rounded-2xl">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if(session('warning'))
+                        <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold px-5 py-3 rounded-2xl">
+                            {{ session('warning') }}
+                        </div>
+                    @endif
+                </div>
+            @endif
             
             <!-- HEADER DASHBOARD DENGAN CART COUNTER (Desain Presisi Sesuai image_a34d24.png) -->
             <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -274,9 +291,11 @@
                                 <div class="flex flex-wrap items-center justify-end gap-2">
                                     <span class="px-3 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider
                                         @if($order->status == 'selesai') bg-green-500/10 text-green-700
+                                        @elseif($order->status == 'dikirim') bg-indigo-500/10 text-indigo-700
                                         @elseif($order->status == 'diproses') bg-blue-500/10 text-blue-700
+                                        @elseif($order->status == 'batal') bg-red-500/10 text-red-700
                                         @else bg-amber-500/10 text-amber-700 @endif">
-                                        {{ $order->status }}
+                                        {{ $order->statusLabel() }}
                                     </span>
 
                                     @if($order->status == 'menunggu_pembayaran')
@@ -334,6 +353,13 @@
                     <p class="text-xs text-brand-secondary mt-1">Ubah data pengiriman dan informasi detail kontak Anda di bawah ini.</p>
                 </div>
 
+                @if(! $user->whatsappNumber())
+                    <div id="profile-phone-required" class="bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-5 max-w-4xl">
+                        <h3 class="font-serif text-lg font-semibold">Nomor WhatsApp wajib diisi sebelum checkout</h3>
+                        <p class="text-xs text-amber-800 mt-1 leading-relaxed">Isi nomor yang aktif agar admin Steven Shoes bisa menghubungi Anda terkait pesanan.</p>
+                    </div>
+                @endif
+
                 <div class="bg-white border border-[#EADBCE] rounded-3xl p-6 sm:p-8 max-w-4xl">
                     <form action="/profile/update" method="POST" class="space-y-6">
                         @csrf
@@ -351,8 +377,8 @@
                             </div>
 
                             <div class="space-y-1">
-                                <label class="block text-xs font-semibold uppercase tracking-wider text-brand-secondary">Nomor Handphone</label>
-                                <input type="text" name="phone" value="{{ $user->phone ?? '' }}" class="w-full px-4 py-3 bg-brand-bg/40 border border-[#E4D5BE] focus:border-brand-dark rounded-xl text-brand-dark text-sm focus:outline-none transition-all">
+                                <label for="profile-phone" class="block text-xs font-semibold uppercase tracking-wider text-brand-secondary">Nomor Handphone / WhatsApp</label>
+                                <input id="profile-phone" type="tel" name="phone" value="{{ old('phone', $user->phone ?? '') }}" autocomplete="tel" placeholder="Contoh: 081234567890" class="w-full px-4 py-3 bg-brand-bg/40 border border-[#E4D5BE] focus:border-brand-dark rounded-xl text-brand-dark text-sm focus:outline-none transition-all">
                             </div>
 
                         </div>
@@ -489,6 +515,40 @@
         } catch (e) {
             console.warn("Gagal membaca inisialisasi data Laravel.");
             cart = [];
+        }
+
+        function bridgeData() {
+            return document.getElementById('laravel-bridge-data');
+        }
+
+        function customerHasWhatsappNumber() {
+            return bridgeData()?.getAttribute('data-user-whatsapp-complete') === '1';
+        }
+
+        function profileUrl() {
+            return bridgeData()?.getAttribute('data-profile-url') || '/customer/dashboard#profil';
+        }
+
+        function focusProfilePhoneField() {
+            switchTab('profil');
+
+            const phoneInput = document.getElementById('profile-phone');
+            if (phoneInput) {
+                phoneInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => phoneInput.focus(), 250);
+            }
+        }
+
+        function promptForWhatsappNumber() {
+            const drawer = document.getElementById('cart-drawer');
+
+            if (drawer && !drawer.classList.contains('hidden')) {
+                toggleCartDrawer();
+            }
+
+            showInstantToast('Isi nomor WhatsApp dulu sebelum checkout.');
+            window.history.replaceState(null, '', profileUrl());
+            focusProfilePhoneField();
         }
 
         function cartItemProductId(item) {
@@ -716,6 +776,11 @@
                 return;
             }
 
+            if (!customerHasWhatsappNumber()) {
+                promptForWhatsappNumber();
+                return;
+            }
+
             const btnText = document.getElementById('btn-checkout-text');
             const spinner = document.getElementById('checkout-spinner');
             const submitBtn = document.getElementById('btn-checkout-submit');
@@ -741,7 +806,12 @@
                 }
 
                 return response.json().then(data => {
-                    if (!response.ok) { throw new Error(data.message || 'Checkout gagal'); }
+                    if (!response.ok) {
+                        const error = new Error(data.message || 'Checkout gagal');
+                        error.redirect = data.redirect;
+                        throw error;
+                    }
+
                     return data;
                 });
             })
@@ -754,6 +824,10 @@
             })
             .catch(error => {
                 showInstantToast(`Checkout gagal: ${error.message}`);
+
+                if (error.redirect) {
+                    setTimeout(() => { window.location.href = error.redirect; }, 900);
+                }
             })
             .finally(() => {
                 submitBtn.disabled = false;
@@ -761,6 +835,16 @@
                 spinner.classList.add('hidden');
             });
         }
+
+        if (window.location.hash === '#profil') {
+            focusProfilePhoneField();
+        }
+
+        window.addEventListener('hashchange', () => {
+            if (window.location.hash === '#profil') {
+                focusProfilePhoneField();
+            }
+        });
     </script>
 </body>
 </html>
